@@ -1,0 +1,27 @@
+{
+  "name": "server-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "if [[ $NODE_ENV == 'production' ]]; then node ./bin/www; else nodemon ./bin/www; fi"
+  },
+  "dependencies": {
+    "connect-pg-simple": "^10.0.0",
+    "cookie-parser": "~1.4.7",
+    "debug": "~2.6.9",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "http-errors": "~1.6.3",
+    "method-override": "^3.0.0",
+    "morgan": "~1.9.1",
+    "pg": "^8.16.3",
+    "pg-promise": "^11.15.0",
+    "pug": "^3.0.3",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

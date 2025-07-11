@@ -1,0 +1,216 @@
+openapi: 3.0.0
+info:
+  title: AddressGeoLocationSO API
+  version: 1.0.0
+  description: API para gestão de endereços e autenticação de utilizadores em contexto de Smart Objects
+
+tags:
+  - name: Auth
+    description: Operações de autenticação (login, logout, registo)
+  - name: Users
+    description: Gestão de utilizadores
+  - name: Address
+    description: Endereços físicos
+  - name: ReadableAddress
+    description: Endereços legíveis
+
+servers:
+  - url: http://localhost:3000
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+
+paths:
+  /register:
+    post:
+      tags: [Auth]
+      summary: Registar um novo utilizador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Utilizador criado
+        '400':
+          description: Dados inválidos
+        '409':
+          description: Nome de utilizador já existe
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sessão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Sessão iniciada
+        '401':
+          description: Credenciais inválidas
+
+  /logout:
+    get:
+      tags: [Auth]
+      summary: Terminar sessão
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Sessão terminada
+        '500':
+          description: Erro ao terminar sessão
+
+  /users:
+    get:
+      tags: [Users]
+      summary: Listar todos os utilizadores
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de utilizadores
+        '401':
+          description: Sessão inválida
+
+  /api/address:
+    get:
+      summary: Lista todos os endereços (não eliminados)
+      tags: [Address]
+      responses:
+        '200':
+          description: Lista de endereços
+    post:
+      summary: Cria um novo endereço
+      tags: [Address]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, country, latitude, longitude, altitude]
+              properties:
+                type:
+                  type: string
+                country:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                altitude:
+                  type: number
+                characteristics:
+                  type: object
+      responses:
+        '201':
+          description: Endereço criado
+        '401':
+          description: Não autenticado
+
+  /api/address/{address}:
+    get:
+      summary: Obtém um endereço por código
+      tags: [Address]
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Endereço encontrado
+        '404':
+          description: Endereço não encontrado
+    put:
+      summary: Atualiza um endereço
+      tags: [Address]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Endereço atualizado
+        '403':
+          description: Não autorizado
+    delete:
+      summary: Elimina (soft delete) um endereço
+      tags: [Address]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Endereço eliminado
+        '403':
+          description: Não autorizado
+
+  /api/readable/address:
+    get:
+      tags: [ReadableAddress]
+      summary: Lista todos os endereços de forma legível
+      responses:
+        '200':
+          description: Lista de endereços com coordenadas legíveis
+        '500':
+          description: Erro interno do servidor
+
+  /api/readable/address/{address}:
+    get:
+      tags: [ReadableAddress]
+      summary: Obtém um endereço com coordenadas legível por código
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Endereço legível encontrado
+        '404':
+          description: Endereço não encontrado
+        '500':
+          description: Erro interno do servidor
