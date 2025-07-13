@@ -5,14 +5,14 @@ block content
   link(rel="stylesheet", href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css")
 
   .container.mt-5
-    h2.text-center.mb-4 Smart Object Dashboard
+    h2.text-center.mb-4 Smart Dispenser Dashboard
 
     .d-flex.justify-content-between.align-items-center.mb-3
       span Welcome, #{username}!
       a.btn.btn-danger(href="/logout") Logout
 
     .text-end.mb-3
-      a.btn.btn-primary(href="/form") Add New Smart Object
+      a.btn.btn-primary(href="/form") Add New Smart Dispenser
 
     if success
       .alert.alert-success.text-center= success
