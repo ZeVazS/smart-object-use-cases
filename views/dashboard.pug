@@ -6,14 +6,23 @@ block content
 
   .container.mt-5
     h2.text-center.mb-4 Smart Dispenser Dashboard
-    h5.text-center.mb-3 You have #{totalCount} smart dispensers.
+    h5.text-center.mb-3
+      if showLowStock
+        | You have #{totalCount} smart dispensers low on stock.
+      else
+        | You have #{totalCount} smart dispensers.
 
     .d-flex.justify-content-between.align-items-center.mb-3
       span Welcome, #{username}!
       a.btn.btn-danger(href="/logout") Logout
 
-    .text-end.mb-3
+    .d-flex.justify-content-end.mb-3.gap-2.flex-wrap
       a.btn.btn-primary(href="/form") Add New Smart Dispenser
+      a.btn.btn-secondary(href="/map") View All on Map
+      form(action="/dashboard" method="get" class="d-flex align-items-center gap-2")
+        input(type="hidden" name="page" value=currentPage)
+        label.form-check-label(for="lowStock") Show only low stock
+        input.form-check-input(type="checkbox" id="lowStock" name="lowStock" value="1" checked=(showLowStock ? true : false) onchange="this.form.submit()")
 
     if success
       .alert.alert-success.text-center= success
@@ -44,65 +53,43 @@ block content
                 td
                   a.btn.btn-sm.btn-warning(href=`/edit/${object.address}`) Edit
                   a.btn.btn-sm.btn-danger(type="button" onclick=`deleteAddress('${object.address}')`) Delete
-   
-        ul.pagination.justify-content-center
-          if currentPage > 1
-            li.page-item
-              a.page-link(href=`/dashboard?page=${currentPage - 1}`) Previous
-          else
-            li.page-item.disabled
-              span.page-link Previous
+                  a.btn.btn-sm.btn-info(href=`/map?focus=${object.reallatitude},${object.reallongitude}` target="_blank") Show on Map
 
-          each num in [...Array(totalPages).keys()].map(n => n + 1)
-            li.page-item(class=(num === currentPage ? 'active' : ''))
-              a.page-link(href=`/dashboard?page=${num}`)= num
 
-          if currentPage < totalPages
-            li.page-item
-              a.page-link(href=`/dashboard?page=${currentPage + 1}`) Next
-          else
-            li.page-item.disabled
-              span.page-link Next
+      ul.pagination.justify-content-center.mt-4
+        if currentPage > 1
+          li.page-item
+            a.page-link(href=`/dashboard?page=${currentPage - 1}${showLowStock ? '&lowStock=1' : ''}`) Previous
+        else
+          li.page-item.disabled
+            span.page-link Previous
+
+        each num in [...Array(totalPages).keys()].map(n => n + 1)
+          li.page-item(class=(num === currentPage ? 'active' : ''))
+            a.page-link(href=`/dashboard?page=${num}${showLowStock ? '&lowStock=1' : ''}`)= num
+
+        if currentPage < totalPages
+          li.page-item
+            a.page-link(href=`/dashboard?page=${currentPage + 1}${showLowStock ? '&lowStock=1' : ''}`) Next
+        else
+          li.page-item.disabled
+            span.page-link Next
     else
       p.text-center.text-muted No smart objects found.
-    
 
-
-    h3.text-center.mt-5 Smart Object Map
-    #map(style="height: 500px;")
-
-  script(src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js")
   script.
-    const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    const objects = !{JSON.stringify(smartObjects)};
-    objects.forEach(obj => {
-      if (obj.reallatitude !== null && obj.reallongitude !== null) {
-        L.circle([obj.reallatitude, obj.reallongitude], {
-          color: 'blue',
-          fillColor: '#30f',
-          fillOpacity: 0.5,
-          radius: 50
-        }).addTo(map).bindPopup(`${obj.fullAddress || 'Unknown'}`);
-      }
-    });
     async function deleteAddress(address) {
-    if (!confirm('Are you sure you want to delete this?')) return;
-    try {
-      const res = await fetch(`/api/address/${address}`, { method: 'DELETE' });
-      if (res.ok) {
-        alert('Deleted successfully!');
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        alert('Delete failed: ' + (data.error || res.statusText));
+      if (!confirm('Are you sure you want to delete this?')) return;
+      try {
+        const res = await fetch(`/api/address/${address}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('Deleted successfully!');
+          window.location.reload();
+        } else {
+          const data = await res.json();
+          alert('Delete failed: ' + (data.error || res.statusText));
+        }
+      } catch (err) {
+        alert('Error deleting: ' + err.message);
       }
-    } catch (err) {
-      alert('Error deleting: ' + err.message);
     }
-    };
-

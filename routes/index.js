@@ -30,7 +30,7 @@ router.get("/form", function (req, res) {
   });
 });
 
-/* GET dashboard paginado */
+/* GET dashboard paginado com filtro */
 router.get("/dashboard", async (req, res) => {
   if (!req.session.user) return res.redirect("/login");
 
@@ -42,27 +42,28 @@ router.get("/dashboard", async (req, res) => {
   const username = req.session.user.name;
   const userId = req.session.user.id;
 
-  // Obter página e limite (com defaults)
   const page = parseInt(req.query.page) || 1;
+  const lowStock = req.query.lowStock === '1';
   const limit = 10;
   const offset = (page - 1) * limit;
 
   try {
-    // Total de objetos (para paginação)
-    const countResult = await db.one(
-      "SELECT COUNT(*) FROM addresses WHERE owner_id = $1 AND deleted_at IS NULL",
-      [userId]
-    );
+    let baseQuery = `FROM addresses WHERE owner_id = $1 AND deleted_at IS NULL`;
+    let params = [userId];
+
+    if (lowStock) {
+      baseQuery += ` AND (characteristics->>'remainingBags')::int < 10`;
+    }
+
+    // Contagem total (para paginação)
+    const countResult = await db.one(`SELECT COUNT(*) ${baseQuery}`, params);
     const totalCount = parseInt(countResult.count);
     const totalPages = Math.ceil(totalCount / limit);
 
-    // Buscar objetos paginados
+    // Objetos paginados
     const rows = await db.any(
-      `SELECT * FROM addresses
-       WHERE owner_id = $1 AND deleted_at IS NULL
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [userId, limit, offset]
+      `SELECT * ${baseQuery} ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+      [...params, limit, offset]
     );
 
     const smartObjects = rows.map((row) => {
@@ -81,22 +82,18 @@ router.get("/dashboard", async (req, res) => {
       }
 
       const address = row.address || "N/A";
-      const latitude = row.latitude;
       const reallatitude = toRealLatitude(row.latitude);
-      const longitude = row.longitude;
       const reallongitude = toRealLongitude(row.longitude);
       const altitude = row.altitude !== null ? row.altitude : 0;
-      const country = address.split("-")[1] || "N/A";
-      const fullAddress = `${address}@${latitude}-${longitude}-${altitude}`;
+      const fullAddress = `${address}@${row.latitude}-${row.longitude}-${altitude}`;
 
       return {
         id: row.id,
         address,
         fullAddress,
-        country,
-        latitude,
+        latitude: row.latitude,
         reallatitude,
-        longitude,
+        longitude: row.longitude,
         reallongitude,
         altitude,
         characteristics,
@@ -111,6 +108,7 @@ router.get("/dashboard", async (req, res) => {
       totalCount,
       currentPage: page,
       totalPages,
+      showLowStock: lowStock,
     });
   } catch (err) {
     console.error("Error loading dashboard:", err);
@@ -168,3 +166,7 @@ router.get("/edit/:address", async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+

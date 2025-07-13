@@ -47,7 +47,7 @@ async function seed() {
 
     console.log('A inserir endereços...');
     
-    const country = 'Portugal';
+    const country = '640'; //PORTUGAL
 
     for (let i = 0; i < 1000; i++) {
       const type = 'S';
@@ -67,11 +67,14 @@ async function seed() {
       const remainingBags = faker.number.int({ min: 0, max: 50 });
       const characteristics = { remainingBags };
 
-      await db.none(
-        `INSERT INTO addresses(address, owner_id, characteristics, latitude, longitude, altitude)
-         VALUES($1, $2, $3, $4, $5, $6)`,
-        [address, owner.id, characteristics, internalLat, internalLon, altitude]
-      );
+      const visibility = false; //sao todos privados
+        
+
+        await db.none(
+        `INSERT INTO addresses(address, owner_id, characteristics, latitude, longitude, altitude, visibility)
+        VALUES($1, $2, $3, $4, $5, $6, $7)`,
+        [address, owner.id, characteristics, internalLat, internalLon, altitude, visibility]
+        );
 
       if (i % 100 === 0) console.log(`Inseridos ${i} objetos...`);
     }

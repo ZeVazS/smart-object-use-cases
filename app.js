@@ -1,43 +1,45 @@
-var createError = require("http-errors");
-var express = require("express");
-require("dotenv").config(); // Load env variables
-var path = require("path");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
-
-// Import the database connection
-const db = require("./db");
+const createError = require("http-errors");
+const express = require("express");
+require("dotenv").config(); // Load environment variables
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const logger = require("morgan");
 const methodOverride = require("method-override");
+const session = require("express-session");
+const pgSession = require("connect-pg-simple")(session);
+const swaggerUi = require("swagger-ui-express");
+const YAML = require("yamljs");
+const swaggerDocument = YAML.load("./docs/swagger.yaml");
 
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
+const db = require("./db"); // Database connection
+
+// Route imports
+const indexRouter = require("./routes/index");
+const usersRouter = require("./routes/users");
 const addressRoutes = require("./routes/address");
 const readableAddressRoutes = require("./routes/readableAddress");
 const loginRouter = require("./routes/login");
 const registerRouter = require("./routes/register");
 const logoutRouter = require("./routes/logout");
+const mapRouter = require("./routes/map"); // ✅ Add your new map route here
 
-const session = require("express-session");
-const pgSession = require("connect-pg-simple")(session);
+const app = express();
 
-const swaggerUi = require('swagger-ui-express');
-const YAML = require('yamljs');
-const swaggerDocument = YAML.load('./docs/swagger.yaml');
-
-
-var app = express();
-
-// Add the db instance to the app for later access
+// Add db instance to app
 app.db = db;
 
-// view engine setup
+// View engine setup
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
-
+// Middleware setup
+app.use(logger("dev"));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
 
-// Esta função remove _method do req.body automaticamente
+// HTTP method override support (e.g., PUT/DELETE in forms)
 app.use(
   methodOverride((req, res) => {
     if (req.body && typeof req.body === "object" && "_method" in req.body) {
@@ -47,31 +49,26 @@ app.use(
     }
   })
 );
-app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
 
-
+// Session setup using PostgreSQL
 app.use(
   session({
     store: new pgSession({
       pgPromise: db,
-      createTableIfMissing: true 
+      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 semana
-      secure: false, 
-      sameSite: 'lax'
-    }
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+      secure: false,
+      sameSite: "lax",
+    },
   })
 );
 
-
+// Routes
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/api/address", addressRoutes);
@@ -79,21 +76,21 @@ app.use("/api/readable/address", readableAddressRoutes);
 app.use("/login", loginRouter);
 app.use("/register", registerRouter);
 app.use("/logout", logoutRouter);
+app.use("/map", mapRouter); // ✅ Mount the new map route
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Swagger UI for API docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// catch 404 and forward to error handler
+// Catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// Error handler
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
 
-  // render the error page
   res.status(err.status || 500);
   res.render("error");
 });
