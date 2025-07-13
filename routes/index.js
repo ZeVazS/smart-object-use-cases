@@ -30,7 +30,7 @@ router.get("/form", function (req, res) {
   });
 });
 
-/* GET dashboard */
+/* GET dashboard paginado */
 router.get("/dashboard", async (req, res) => {
   if (!req.session.user) return res.redirect("/login");
 
@@ -39,13 +39,30 @@ router.get("/dashboard", async (req, res) => {
   delete req.session.successMessage;
   delete req.session.errorMessage;
 
-  const username = req.session.user.username;
+  const username = req.session.user.name;
   const userId = req.session.user.id;
 
+  // Obter página e limite (com defaults)
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
   try {
-    const rows = await db.any(
-      "SELECT * FROM addresses WHERE owner_id = $1 AND deleted_at IS NULL",
+    // Total de objetos (para paginação)
+    const countResult = await db.one(
+      "SELECT COUNT(*) FROM addresses WHERE owner_id = $1 AND deleted_at IS NULL",
       [userId]
+    );
+    const totalCount = parseInt(countResult.count);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Buscar objetos paginados
+    const rows = await db.any(
+      `SELECT * FROM addresses
+       WHERE owner_id = $1 AND deleted_at IS NULL
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
     );
 
     const smartObjects = rows.map((row) => {
@@ -86,12 +103,21 @@ router.get("/dashboard", async (req, res) => {
       };
     });
 
-    res.render("dashboard", { username, smartObjects, success, error });
+    res.render("dashboard", {
+      username,
+      smartObjects,
+      success,
+      error,
+      totalCount,
+      currentPage: page,
+      totalPages,
+    });
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 /* GET edit page */
 router.get("/edit/:address", async (req, res) => {

@@ -6,6 +6,7 @@ block content
 
   .container.mt-5
     h2.text-center.mb-4 Smart Dispenser Dashboard
+    h5.text-center.mb-3 You have #{totalCount} smart dispensers.
 
     .d-flex.justify-content-between.align-items-center.mb-3
       span Welcome, #{username}!
@@ -43,8 +44,29 @@ block content
                 td
                   a.btn.btn-sm.btn-warning(href=`/edit/${object.address}`) Edit
                   a.btn.btn-sm.btn-danger(type="button" onclick=`deleteAddress('${object.address}')`) Delete
+   
+        ul.pagination.justify-content-center
+          if currentPage > 1
+            li.page-item
+              a.page-link(href=`/dashboard?page=${currentPage - 1}`) Previous
+          else
+            li.page-item.disabled
+              span.page-link Previous
+
+          each num in [...Array(totalPages).keys()].map(n => n + 1)
+            li.page-item(class=(num === currentPage ? 'active' : ''))
+              a.page-link(href=`/dashboard?page=${num}`)= num
+
+          if currentPage < totalPages
+            li.page-item
+              a.page-link(href=`/dashboard?page=${currentPage + 1}`) Next
+          else
+            li.page-item.disabled
+              span.page-link Next
     else
       p.text-center.text-muted No smart objects found.
+    
+
 
     h3.text-center.mt-5 Smart Object Map
     #map(style="height: 500px;")

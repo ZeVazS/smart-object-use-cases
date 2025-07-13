@@ -21,10 +21,12 @@ function randomizeCoord(coord, maxDelta = 0.05) {
   return +(coord + delta).toFixed(6);
 }
 
-function toInternalCoordinate(real) {
+function toInternalLongitude(real) {
   return Math.round((real + 180) * 10000);
 }
-
+function toInternalLatitude(real) {
+  return Math.round((real + 90) * 10000);
+}
 async function seed() {
   try {
     console.log('A apagar dados existentes...');
@@ -58,8 +60,8 @@ async function seed() {
       const variedLat = randomizeCoord(city.lat, 0.03); // ~3km
       const variedLon = randomizeCoord(city.lon, 0.03); // ~3km
 
-      const internalLat = toInternalCoordinate(variedLat);
-      const internalLon = toInternalCoordinate(variedLon);
+      const internalLat = toInternalLatitude(variedLat);
+      const internalLon = toInternalLongitude(variedLon);
       const altitude = faker.number.int({ min: 0, max: 20 });
 
       const remainingBags = faker.number.int({ min: 0, max: 50 });
